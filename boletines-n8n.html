@@ -323,6 +323,25 @@
       font-style: italic;
     }
 
+    .maps-btn {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+      background: #1a73e8;
+      border-radius: 6px;
+      text-decoration: none;
+      vertical-align: middle;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .maps-btn:hover {
+      background: #1557b0;
+    }
+
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
@@ -693,8 +712,8 @@
     }
 
     // ---------- Conversión formato plano → estructurado ----------
-
-// Valores basura que el parser de n8n mete cuando un campo está vacío
+    // Valores basura que el parser de n8n mete cuando un campo está vacío
+    // (suele ser el título de la sección siguiente del PDF)
     const VALORES_INVALIDOS = [
       'DATOS DEL APARATO:',
       'DATOS DEL APARATO',
@@ -714,7 +733,9 @@
       if (v === null || v === undefined) return '';
       const s = String(v).trim();
       if (!s) return '';
+      // Si es exactamente un encabezado de sección → vacío
       if (VALORES_INVALIDOS.some(bad => s.toUpperCase() === bad.toUpperCase())) return '';
+      // Si empieza por un encabezado de sección (ej. "DATOS DEL APARATO: algo")
       if (/^DATOS DEL (APARATO|USUARIO|AVER[IÍ]A)\s*:?/i.test(s)) return '';
       if (/^(SEGURO|FECHAS)\s*:?$/i.test(s)) return '';
       return s;
@@ -726,12 +747,13 @@
 
       for (const row of items) {
         const key = (row.columnaA || row.ColumnaA || '').trim();
-        const val = row.columnaB ?? row.ColumnaB ?? '';
+        const raw = row.columnaB ?? row.ColumnaB ?? '';
+        const val = limpiarCampo(raw);
 
         if (key === 'ORDEN') {
           if (actual) avisos.push(actual);
           actual = {
-            orden: val,
+            orden: raw,
             aviso: '',
             cliente: {},
             direccion: {},
@@ -751,7 +773,7 @@
         } else if (key === 'Teléfono') {
           actual.cliente.telefonos = val;
         } else if (key === 'NIF') {
-          actual.cliente.nif = val;
+          actual.cliente.nif = val;  // ya limpio: si venía "DATOS DEL APARATO:" queda ''
         } else if (key === 'Dirección') {
           actual.direccion.completa = val;
         } else if (key === 'Código Postal') {
@@ -802,6 +824,23 @@
       return `<dt>${label}</dt><dd class="${v ? '' : 'empty'}">${v || '—'}</dd>`;
     }
 
+    function mapsUrl(direccion, cp) {
+      const partes = [val(direccion), val(cp)].filter(Boolean);
+      if (!partes.length) return null;
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(partes.join(', '));
+    }
+
+    function renderDireccion(a) {
+      const dir = val(a.direccion?.completa);
+      const cp = val(a.direccion?.codigo_postal);
+      const url = mapsUrl(dir, cp);
+      const texto = dir || '—';
+      const btn = url
+        ? `<a class="maps-btn" href="${url}" target="_blank" rel="noopener" title="Abrir en Google Maps">📍 Maps</a>`
+        : '';
+      return `<dt>Dirección</dt><dd class="${dir ? '' : 'empty'}">${texto}${btn ? ' ' + btn : ''}</dd>`;
+    }
+
     function renderAviso(a) {
       return `
         <article class="aviso-card">
@@ -816,7 +855,7 @@
                 ${renderField('Nombre', a.cliente?.nombre)}
                 ${renderField('Teléfono', a.cliente?.telefonos)}
                 ${renderField('NIF', a.cliente?.nif)}
-                ${renderField('Dirección', a.direccion?.completa)}
+                ${renderDireccion(a)}
                 ${renderField('C.P.', a.direccion?.codigo_postal)}
               </dl>
             </div>
@@ -986,17 +1025,43 @@
         } else {
           avisos = items.map(item => {
             const j = item.json || item;
+            const cli = j.cliente || {};
             return {
               orden: j.orden,
               aviso: j.aviso,
-              cliente: j.cliente || {},
-              direccion: j.direccion || {},
-              aparato: j.aparato || {},
-              averia: j.averia || {},
-              seguro: j.seguro || {},
-              fechas: j.fechas || {},
-              tienda_solicitante: j.tienda_solicitante || '',
-              aviso_anterior: j.aviso_anterior || ''
+              cliente: {
+                nombre: limpiarCampo(cli.nombre),
+                nif: limpiarCampo(cli.nif),
+                telefonos: Array.isArray(cli.telefonos)
+                  ? cli.telefonos.map(limpiarCampo).filter(Boolean)
+                  : limpiarCampo(cli.telefonos)
+              },
+              direccion: {
+                completa: limpiarCampo(j.direccion?.completa),
+                codigo_postal: limpiarCampo(j.direccion?.codigo_postal)
+              },
+              aparato: {
+                marca: limpiarCampo(j.aparato?.marca),
+                modelo: limpiarCampo(j.aparato?.modelo),
+                tipo: limpiarCampo(j.aparato?.tipo)
+              },
+              averia: {
+                causa: limpiarCampo(j.averia?.causa),
+                sintoma: limpiarCampo(j.averia?.sintoma),
+                diagnostico: limpiarCampo(j.averia?.diagnostico)
+              },
+              seguro: {
+                compania: limpiarCampo(j.seguro?.compania),
+                modalidad: limpiarCampo(j.seguro?.modalidad),
+                expediente: limpiarCampo(j.seguro?.expediente),
+                tipo_urgencia: limpiarCampo(j.seguro?.tipo_urgencia)
+              },
+              fechas: {
+                limite_primera_visita: limpiarCampo(j.fechas?.limite_primera_visita),
+                limite_terminacion: limpiarCampo(j.fechas?.limite_terminacion)
+              },
+              tienda_solicitante: limpiarCampo(j.tienda_solicitante),
+              aviso_anterior: limpiarCampo(j.aviso_anterior)
             };
           });
         }
