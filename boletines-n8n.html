@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boletines de Servicio · n8n</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --section: #243044;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.35rem;
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .field {
+      flex: 1 1 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .field input[type="url"],
+    .field input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .field input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Zona de subida de PDF */
+    .drop-zone {
+      flex: 1 1 100%;
+      margin-top: 0.9rem;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 1.4rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: var(--bg);
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .drop-zone.has-file {
+      border-style: solid;
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .drop-zone input {
+      display: none;
+    }
+
+    .drop-zone .icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .drop-zone .hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .drop-zone .filename {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      color: var(--success);
+      font-size: 0.95rem;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--section);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #2c3b52;
+    }
+
+    .status {
+      margin-top: 0.9rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+
+    .status.error {
+      color: #f87171;
+    }
+
+    .status.success {
+      color: var(--success);
+    }
+
+    .status.loading {
+      color: var(--warning);
+    }
+
+    /* Resumen */
+    .summary {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1.25rem;
+      min-width: 110px;
+    }
+
+    .stat .num {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* Cards de avisos */
+    .avisos {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .aviso-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+
+    .aviso-card:hover {
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+
+    .aviso-header {
+      background: var(--section);
+      padding: 0.9rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .aviso-header .orden {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .aviso-header .aviso-num {
+      background: var(--accent);
+      color: white;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .aviso-body {
+      padding: 1.1rem 1.25rem 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .section {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+    }
+
+    .section h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.55rem;
+      font-weight: 600;
+    }
+
+    .section dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.25rem 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .section dt {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .section dd {
+      word-break: break-word;
+    }
+
+    .section dd.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Boletines de Servicio</h1>
+      <p>Sube el PDF del boletín → n8n lo procesa → ves todos los avisos</p>
+    </header>
+
+    <div class="controls">
+      <div class="controls-row">
+        <div class="field">
+          <label for="webhookUrl">URL del Webhook de n8n</label>
+          <input type="url" id="webhookUrl" placeholder="https://tu-n8n.com/webhook/boletines" value="">
+        </div>
+      </div>
+
+      <!-- Zona de arrastrar / seleccionar PDF -->
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('pdfFile').click()">
+        <input type="file" id="pdfFile" accept="application/pdf,.pdf">
+        <div class="icon">📄</div>
+        <div class="hint">Arrastra aquí el PDF del boletín o haz clic para seleccionarlo</div>
+        <div class="filename" id="fileName" style="display:none;"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="btnEjecutar" onclick="subirYEjecutar()" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Procesar PDF
+        </button>
+        <button class="btn btn-secondary" onclick="cargarDemo()">
+          Cargar datos de ejemplo
+        </button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <div id="resumen" class="summary" style="display:none;"></div>
+
+    <div id="avisos" class="avisos">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>Selecciona un PDF y pulsa <strong>Procesar PDF</strong><br>o carga los datos de ejemplo para ver cómo queda.</p>
+      </div>
+    </div>
+
+    <footer>
+      Página sencilla · El PDF se envía al webhook de n8n con el nombre de campo <code>data</code>
+    </footer>
+  </div>
+
+  <script>
+    // ---------- Datos de ejemplo (pinData original) ----------
+    const DEMO_FLAT = [
+      { columnaA: "ORDEN", columnaB: 1 },
+      { columnaA: "AVISO", columnaB: "898913" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "VALENTIN MOCANO" },
+      { columnaA: "Teléfono", columnaB: "637043583" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "CAL CANUTA PARTIDA NUM: 1 CALPE (ALICANTE-ALACANT) 03710" },
+      { columnaA: "Código Postal", columnaB: "03710" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "BOSCH" },
+      { columnaA: "Modelo / KI", columnaB: "HRG6767S2/58" },
+      { columnaA: "Tipo", columnaB: "HORNO" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Aparato instalado EN COLUMNA_Pieza rota:_Mando giratorio_de funciones" },
+      { columnaA: "Síntoma", columnaB: "16X3* >>> DIAGNÓSTICO: Llevar mando de funciones" },
+      { columnaA: "Diagnóstico", columnaB: "Llevar mando de funciones" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 2 },
+      { columnaA: "AVISO", columnaB: "898912" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "VALENTIN MOCANO" },
+      { columnaA: "Teléfono", columnaB: "637043583" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "CAL CANUTA PARTIDA NUM: 1 CALPE (ALICANTE-ALACANT) 03710" },
+      { columnaA: "Código Postal", columnaB: "03710" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "BOSCH" },
+      { columnaA: "Modelo / KI", columnaB: "CFA634GS1/01" },
+      { columnaA: "Tipo", columnaB: "MICROONDAS" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Pieza rota:_Mando roto" },
+      { columnaA: "Síntoma", columnaB: "16X3* >>> DIAGNÓSTICO: Cambiar mando" },
+      { columnaA: "Diagnóstico", columnaB: "Cambiar mando" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 3 },
+      { columnaA: "AVISO", columnaB: "898634" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "ENRIQUE IVARS GARCIA" },
+      { columnaA: "Teléfono", columnaB: "679400709" },
+      { columnaA: "NIF", columnaB: "29026295L" },
+      { columnaA: "Dirección", columnaB: "CAL DEL MEDITERRANEO 74 3 24 NUM: 0 TEULADA (ALICANTE-ALACANT) 03725" },
+      { columnaA: "Código Postal", columnaB: "03725" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "BALAY" },
+      { columnaA: "Modelo / KI", columnaB: "Z9KDPWHA23(00)" },
+      { columnaA: "Tipo", columnaB: "SECADORA" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "COMPROBAR SI ES APARATO SUMMER Secadora" },
+      { columnaA: "Síntoma", columnaB: "" },
+      { columnaA: "Diagnóstico", columnaB: "" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "ASITUR ASISTENCIA S.A." },
+      { columnaA: "Modalidad", columnaB: "ASITUR - Envío profesional" },
+      { columnaA: "Expediente", columnaB: "261419541 N. POLIZA:" },
+      { columnaA: "Tipo de urgencia", columnaB: "Aviso Compañía Seguros" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 4 },
+      { columnaA: "AVISO", columnaB: "898878" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "JOHN GARY ROGAN" },
+      { columnaA: "Teléfono", columnaB: "634313429" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "LOS ROMEROS NUM: 34 URB. LOS CALISTROS POB.NOU BENITATXELL BENITACHEL (ALICANTE-" },
+      { columnaA: "Código Postal", columnaB: "" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "SIEMENS" },
+      { columnaA: "Modelo / KI", columnaB: "SN63HX52CE/13" },
+      { columnaA: "Tipo", columnaB: "LAVAVAJILLAS" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Lavadora_de carga frontal_._Indicación en el display:_Indicación en el display:_E31 o E31 -00 (alternando): DESBORDAMIENTO DE AGUA (2dig)" },
+      { columnaA: "Síntoma", columnaB: "A122* >>> DIAGNÓSTICO: Comprobar desagüe y limpieza bomba. Posible defe" },
+      { columnaA: "Diagnóstico", columnaB: "Comprobar desagüe y limpieza bomba. Posible defe" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 5 },
+      { columnaA: "AVISO", columnaB: "898717" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "JEAN MARC CHEMARIN" },
+      { columnaA: "Teléfono", columnaB: "614583055" },
+      { columnaA: "NIF", columnaB: "Z2557266Q" },
+      { columnaA: "Dirección", columnaB: "CAL Calle ZONA OLIVOS, #183. NUM: 0 Benitachell/Poble Nou de Benitatxell, el (ALICANTE-ALACANT) 03726" },
+      { columnaA: "Código Postal", columnaB: "03726" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "NEFF" },
+      { columnaA: "Modelo / KI", columnaB: "Z9KDPHNA04(00)" },
+      { columnaA: "Tipo", columnaB: "MICROONDAS" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Microondas_No calienta en modo Microondas" },
+      { columnaA: "Síntoma", columnaB: "C273" },
+      { columnaA: "Diagnóstico", columnaB: "" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "Sejescar S.L." },
+      { columnaA: "Modalidad", columnaB: "Sejescar- Siniestro (con ppto)" },
+      { columnaA: "Expediente", columnaB: "21857946 N. POLIZA:" },
+      { columnaA: "Tipo de urgencia", columnaB: "Urgencia 24 horas compañías" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "09-09-2026" },
+      { columnaA: "Límite terminación", columnaB: "05-11-2026" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 6 },
+      { columnaA: "AVISO", columnaB: "898960" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "GRYTA SCHOLL" },
+      { columnaA: "Teléfono", columnaB: "4915158701588" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "PUERTO DEL SOLLER NUM: 42 MORAIRA (ALICANTE-ALACANT) 03724" },
+      { columnaA: "Código Postal", columnaB: "03724" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "BOSCH" },
+      { columnaA: "Modelo / KI", columnaB: "SMV2HAX02E/13" },
+      { columnaA: "Tipo", columnaB: "LAVAVAJILLAS" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "" },
+      { columnaA: "Síntoma", columnaB: "17E0" },
+      { columnaA: "Diagnóstico", columnaB: "" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 7 },
+      { columnaA: "AVISO", columnaB: "898693" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "PETER RIBBENS" },
+      { columnaA: "Teléfono", columnaB: "722133779" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "CANARI NUM: 19 PRTA: CS BENISSA (ALICANTE-ALACANT) 03720" },
+      { columnaA: "Código Postal", columnaB: "03720" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "SIEMENS" },
+      { columnaA: "Modelo / KI", columnaB: "CF634AGS1/03" },
+      { columnaA: "Tipo", columnaB: "MICROONDAS" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "PROBLEMAS CON LA PUERTA" },
+      { columnaA: "Síntoma", columnaB: "16X3" },
+      { columnaA: "Diagnóstico", columnaB: "" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 8 },
+      { columnaA: "AVISO", columnaB: "898775" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "FRANK -" },
+      { columnaA: "Teléfono", columnaB: "32477777254" },
+      { columnaA: "NIF", columnaB: "DATOS DEL APARATO:" },
+      { columnaA: "Dirección", columnaB: "PDA LA EMPEDROLA NUM: 0 ANEXO: Nº E 10 CALP (ALICANTE-ALACANT) 03710" },
+      { columnaA: "Código Postal", columnaB: "03710" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "SIEMENS" },
+      { columnaA: "Modelo / KI", columnaB: "HR776G1B1/J6" },
+      { columnaA: "Tipo", columnaB: "HORNO" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Aparato instalado EN COLUMNA_Marca error_E1003: Sin señal de la unidad de alimentación o señal de control en el inversor" },
+      { columnaA: "Síntoma", columnaB: "17E0* >>> DIAGNÓSTICO: Ver documento de errores" },
+      { columnaA: "Diagnóstico", columnaB: "Ver documento de errores" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "" },
+      { columnaA: "Límite terminación", columnaB: "" },
+      { columnaA: "Tienda solicitante", columnaB: "AZULEJOS BENISSA SL (0600059525)" },
+      { columnaA: "Aviso anterior", columnaB: "" },
+      { columnaA: "", columnaB: "" },
+      { columnaA: "ORDEN", columnaB: 9 },
+      { columnaA: "AVISO", columnaB: "898650" },
+      { columnaA: "DATOS DEL USUARIO", columnaB: "" },
+      { columnaA: "Nombre", columnaB: "WILFRIED BRAUER" },
+      { columnaA: "Teléfono", columnaB: "4915755740954, 04915755740954" },
+      { columnaA: "NIF", columnaB: "Y0615372K" },
+      { columnaA: "Dirección", columnaB: "MARYVILLA NUM: 28 BLOQ: H CALP (ALICANTE-ALACANT) 03710" },
+      { columnaA: "Código Postal", columnaB: "03710" },
+      { columnaA: "DATOS DEL APARATO", columnaB: "" },
+      { columnaA: "Marca", columnaB: "BOSCH" },
+      { columnaA: "Modelo / KI", columnaB: "KIV86VSE0/07" },
+      { columnaA: "Tipo", columnaB: "FRIGORIFICO" },
+      { columnaA: "DATOS DE LA AVERÍA", columnaB: "" },
+      { columnaA: "Causa", columnaB: "Ruido_constante (zumbido, ruido de motor) y/o se percibe un aumento del nivel de ruido_El ruido no desaparece al abrir la puerta._Enfría bien" },
+      { columnaA: "Síntoma", columnaB: "1400* >>> DIAGNÓSTICO: Posible ruido trampilla motorizada (modelos adde" },
+      { columnaA: "Diagnóstico", columnaB: "Posible ruido trampilla motorizada (modelos adde" },
+      { columnaA: "SEGURO", columnaB: "" },
+      { columnaA: "Compañía", columnaB: "" },
+      { columnaA: "Modalidad", columnaB: "" },
+      { columnaA: "Expediente", columnaB: "" },
+      { columnaA: "Tipo de urgencia", columnaB: "Urgente" },
+      { columnaA: "FECHAS", columnaB: "" },
+      { columnaA: "Límite primera visita", columnaB: "09-09-2026" },
+      { columnaA: "Límite terminación", columnaB: "15-09-2026" },
+      { columnaA: "Tienda solicitante", columnaB: "AITANA HOME SOLUTIONS, S.L (0600055700)" },
+      { columnaA: "Aviso anterior", columnaB: "858282" },
+      { columnaA: "", columnaB: "" }
+    ];
+
+    // ---------- Estado del archivo ----------
+    let selectedFile = null;
+
+    const dropZone = document.getElementById('dropZone');
+    const pdfInput = document.getElementById('pdfFile');
+    const fileNameEl = document.getElementById('fileName');
+    const btnEjecutar = document.getElementById('btnEjecutar');
+
+    pdfInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) setFile(file);
+    });
+
+    // Drag & drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+        setFile(file);
+      } else {
+        setStatus('Solo se admiten archivos PDF.', 'error');
+      }
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      fileNameEl.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+      fileNameEl.style.display = 'block';
+      dropZone.classList.add('has-file');
+      btnEjecutar.disabled = false;
+      setStatus('PDF listo. Pulsa «Procesar PDF».', 'success');
+    }
+
+    // ---------- Conversión formato plano → estructurado ----------
+    function flatToStructured(items) {
+      const avisos = [];
+      let actual = null;
+
+      for (const row of items) {
+        const key = (row.columnaA || row.ColumnaA || '').trim();
+        const val = row.columnaB ?? row.ColumnaB ?? '';
+
+        if (key === 'ORDEN') {
+          if (actual) avisos.push(actual);
+          actual = {
+            orden: val,
+            aviso: '',
+            cliente: {},
+            direccion: {},
+            aparato: {},
+            averia: {},
+            seguro: {},
+            fechas: {},
+            tienda_solicitante: '',
+            aviso_anterior: ''
+          };
+        } else if (!actual) {
+          continue;
+        } else if (key === 'AVISO') {
+          actual.aviso = val;
+        } else if (key === 'Nombre') {
+          actual.cliente.nombre = val;
+        } else if (key === 'Teléfono') {
+          actual.cliente.telefonos = val;
+        } else if (key === 'NIF') {
+          actual.cliente.nif = val;
+        } else if (key === 'Dirección') {
+          actual.direccion.completa = val;
+        } else if (key === 'Código Postal') {
+          actual.direccion.codigo_postal = val;
+        } else if (key === 'Marca') {
+          actual.aparato.marca = val;
+        } else if (key === 'Modelo / KI') {
+          actual.aparato.modelo = val;
+        } else if (key === 'Tipo') {
+          actual.aparato.tipo = val;
+        } else if (key === 'Causa') {
+          actual.averia.causa = val;
+        } else if (key === 'Síntoma') {
+          actual.averia.sintoma = val;
+        } else if (key === 'Diagnóstico') {
+          actual.averia.diagnostico = val;
+        } else if (key === 'Compañía') {
+          actual.seguro.compania = val;
+        } else if (key === 'Modalidad') {
+          actual.seguro.modalidad = val;
+        } else if (key === 'Expediente') {
+          actual.seguro.expediente = val;
+        } else if (key === 'Tipo de urgencia') {
+          actual.seguro.tipo_urgencia = val;
+        } else if (key === 'Límite primera visita') {
+          actual.fechas.limite_primera_visita = val;
+        } else if (key === 'Límite terminación') {
+          actual.fechas.limite_terminacion = val;
+        } else if (key === 'Tienda solicitante') {
+          actual.tienda_solicitante = val;
+        } else if (key === 'Aviso anterior') {
+          actual.aviso_anterior = val;
+        }
+      }
+      if (actual) avisos.push(actual);
+      return avisos;
+    }
+
+    function val(v) {
+      if (v === null || v === undefined || v === '') return null;
+      if (Array.isArray(v)) return v.filter(Boolean).join(', ') || null;
+      return String(v).trim() || null;
+    }
+
+    function renderField(label, value) {
+      const v = val(value);
+      return `<dt>${label}</dt><dd class="${v ? '' : 'empty'}">${v || '—'}</dd>`;
+    }
+
+    function renderAviso(a) {
+      return `
+        <article class="aviso-card">
+          <div class="aviso-header">
+            <span class="orden">Orden ${a.orden ?? '—'}</span>
+            <span class="aviso-num">Aviso ${a.aviso ?? '—'}</span>
+          </div>
+          <div class="aviso-body">
+            <div class="section">
+              <h3>Datos del usuario</h3>
+              <dl>
+                ${renderField('Nombre', a.cliente?.nombre)}
+                ${renderField('Teléfono', a.cliente?.telefonos)}
+                ${renderField('NIF', a.cliente?.nif)}
+                ${renderField('Dirección', a.direccion?.completa)}
+                ${renderField('C.P.', a.direccion?.codigo_postal)}
+              </dl>
+            </div>
+            <div class="section">
+              <h3>Datos del aparato</h3>
+              <dl>
+                ${renderField('Marca', a.aparato?.marca)}
+                ${renderField('Modelo / KI', a.aparato?.modelo)}
+                ${renderField('Tipo', a.aparato?.tipo)}
+              </dl>
+            </div>
+            <div class="section">
+              <h3>Datos de la avería</h3>
+              <dl>
+                ${renderField('Causa', a.averia?.causa)}
+                ${renderField('Síntoma', a.averia?.sintoma)}
+                ${renderField('Diagnóstico', a.averia?.diagnostico)}
+              </dl>
+            </div>
+            <div class="section">
+              <h3>Seguro</h3>
+              <dl>
+                ${renderField('Compañía', a.seguro?.compania)}
+                ${renderField('Modalidad', a.seguro?.modalidad)}
+                ${renderField('Expediente', a.seguro?.expediente)}
+                ${renderField('Urgencia', a.seguro?.tipo_urgencia)}
+              </dl>
+            </div>
+            <div class="section">
+              <h3>Fechas y otros</h3>
+              <dl>
+                ${renderField('Límite 1ª visita', a.fechas?.limite_primera_visita)}
+                ${renderField('Límite terminación', a.fechas?.limite_terminacion)}
+                ${renderField('Tienda solicitante', a.tienda_solicitante)}
+                ${renderField('Aviso anterior', a.aviso_anterior)}
+              </dl>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function mostrarAvisos(avisos) {
+      const cont = document.getElementById('avisos');
+      const res = document.getElementById('resumen');
+
+      if (!avisos || avisos.length === 0) {
+        cont.innerHTML = `<div class="empty-state"><p>No se recibieron avisos.</p></div>`;
+        res.style.display = 'none';
+        return;
+      }
+
+      cont.innerHTML = avisos.map(renderAviso).join('');
+
+      const marcas = {};
+      avisos.forEach(a => {
+        const m = val(a.aparato?.marca) || 'Sin marca';
+        marcas[m] = (marcas[m] || 0) + 1;
+      });
+
+      res.style.display = 'flex';
+      res.innerHTML = `
+        <div class="stat">
+          <div class="num">${avisos.length}</div>
+          <div class="label">Avisos</div>
+        </div>
+        ${Object.entries(marcas).map(([m, c]) => `
+          <div class="stat">
+            <div class="num">${c}</div>
+            <div class="label">${m}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function setStatus(msg, type = '') {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status ' + type;
+    }
+
+    function cargarDemo() {
+      try {
+        setStatus('Cargando datos de ejemplo…', 'loading');
+        console.log('DEMO_FLAT length:', DEMO_FLAT.length);
+        const avisos = flatToStructured(DEMO_FLAT);
+        console.log('Avisos parseados (demo):', avisos.length, avisos);
+        mostrarAvisos(avisos);
+        setStatus(`Mostrando ${avisos.length} avisos de ejemplo.`, 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('Error al cargar el demo: ' + err.message, 'error');
+      }
+    }
+
+    // ---------- Subir PDF y ejecutar workflow ----------
+    async function subirYEjecutar() {
+      const url = document.getElementById('webhookUrl').value.trim();
+      if (!url) {
+        setStatus('Introduce la URL del webhook de n8n.', 'error');
+        return;
+      }
+      if (!selectedFile) {
+        setStatus('Selecciona un archivo PDF primero.', 'error');
+        return;
+      }
+
+      btnEjecutar.disabled = true;
+      setStatus('Subiendo PDF y ejecutando workflow… esto puede tardar unos segundos.', 'loading');
+
+      try {
+        const formData = new FormData();
+        formData.append('data', selectedFile, selectedFile.name);
+
+        const res = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        const rawText = await res.text();
+        console.log('Respuesta HTTP:', res.status, res.statusText);
+        console.log('Respuesta cruda (primeros 2000 chars):', rawText.slice(0, 2000));
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText} — ${rawText.slice(0, 300)}`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          throw new Error('La respuesta no es JSON válido. Primeros caracteres: ' + rawText.slice(0, 200));
+        }
+
+        console.log('JSON parseado:', data);
+
+        // Normalizar a array de items
+        let items = [];
+        if (Array.isArray(data)) {
+          items = data;
+        } else if (data && Array.isArray(data.data)) {
+          items = data.data;
+        } else if (data && Array.isArray(data.items)) {
+          items = data.items;
+        } else if (data && typeof data === 'object') {
+          items = [data];
+        }
+
+        console.log('Items detectados:', items.length, items.slice(0, 3));
+
+        if (items.length === 0) {
+          setStatus('n8n respondió pero no hay items. Revisa el nodo Respond to Webhook.', 'error');
+          mostrarAvisos([]);
+          return;
+        }
+
+        // Detectar formato plano (columnaA/columnaB) o estructurado
+        const first = items[0];
+        const firstJson = first.json || first;
+        const isFlat = firstJson.columnaA !== undefined || firstJson.ColumnaA !== undefined ||
+                       first.columnaA !== undefined || first.ColumnaA !== undefined;
+
+        let avisos;
+        if (isFlat) {
+          const flatItems = items.map(it => it.json || it);
+          avisos = flatToStructured(flatItems);
+        } else {
+          avisos = items.map(item => {
+            const j = item.json || item;
+            return {
+              orden: j.orden,
+              aviso: j.aviso,
+              cliente: j.cliente || {},
+              direccion: j.direccion || {},
+              aparato: j.aparato || {},
+              averia: j.averia || {},
+              seguro: j.seguro || {},
+              fechas: j.fechas || {},
+              tienda_solicitante: j.tienda_solicitante || '',
+              aviso_anterior: j.aviso_anterior || ''
+            };
+          });
+        }
+
+        console.log('Avisos finales:', avisos.length, avisos);
+        mostrarAvisos(avisos);
+        setStatus(`PDF procesado correctamente. ${avisos.length} avisos recibidos.`, 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus(`Error: ${err.message}`, 'error');
+      } finally {
+        btnEjecutar.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
